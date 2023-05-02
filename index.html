@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Company Tycoon</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" /> 
+		<style type="text/css">
+			* { font-family: sans-serif; }
+
+			@media only screen and (min-width: 777px) {
+				.bp {
+					width: 40vw;
+					border-right: 5px solid black;
+					margin-right: 35px;
+				}
+				body {
+					display: flex;
+					align-items: left;
+					justify-content: left;
+				}
+				.floor { width: 35vw; }
+				#cname { width: 25vw; }
+			}
+
+			@media only screen and (max-width: 776px) {
+				.bp {
+					border-bottom: 5px solid black;
+					padding-bottom: 35px;
+					margin-bottom: 35px;
+				}
+				.floor {
+					width: 85vw;
+				}
+				#cname { width: 70vw; }
+			}
+
+			.floor {
+				background-color: gray;
+				color: white;
+				height: 50px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				border: 2px solid black;
+			}
+		</style>
+		<script type="text/javascript">
+		window.addEventListener("DOMContentLoaded", (e) => {
+			// Prepare data
+			function g(a) { return localStorage.getItem(a); }
+			function s(a, v) { return localStorage.setItem(a, v); }
+			if (g("floors") == undefined) s("floors", 1);
+			if (g("moni") == undefined) s("moni", 0);
+			if (g("cname") == undefined) s("cname", "Cash&Candy SRL");
+			if (g("lastPlayDate") == undefined) s("lastPlayDate", Date.parse(new Date()) / 1000);
+			for (var i = 1; i <= g("floors"); i++) {
+				if (g("floor" + i.toString() + "_lvl") == undefined) s("floor" + i.toString() + "_lvl", 1);
+			}
+
+			var MONI_PERFLOOR = 5;
+
+			// Comeback calc
+			var playDate = Date.parse(new Date()) / 1000;
+			var diff = playDate - Number(g("lastPlayDate"));
+			var mo = 0;
+			console.warn(diff);
+			s("lastPlayDate", playDate);
+			if (diff > 0) {
+			for (var i = 1; i <= g("floors"); i++) {
+				console.info(mo);
+				mo += MONI_PERFLOOR ** Number(g("floor" + i.toString() + "_lvl"));
+				console.info(mo);
+			};
+			if (!isNaN(mo * diff)) { s("moni", Number(g("moni")) + (mo * diff));
+				alert("Bine ai revenit! Cât ai fost plecat, compania ta a generat " + (mo * diff).toString() + " bani."); } else { alert("Ai fost plecat prea mult iar angajații tăi au ținut banii făcuți pentru ei. Ce păcat :("); };
+			}
+
+			// Defs
+			var fs = document.body.querySelector(".fs");
+			var moni = document.body.querySelector("#moni");
+
+			// Add floors
+			var f = document.createElement("div");
+			f.className = "floor";
+
+			function updateMoney() {
+				moni.innerHTML = g("moni").toString() + " bani<br><br>";
+			}
+
+			function updateFloors() {
+				fs.innerHTML = "";
+				var floors = g("floors");
+				for (var i = 0; i < floors; i++) { var t = f.cloneNode(); t.innerHTML = "Etajul " + (floors - i).toString() + " (Lv. "+g("floor"+(floors-i).toString()+"_lvl")+")&nbsp;&nbsp;&nbsp;<button onclick=\"window.upgradeFloor(" + (floors - i).toString() + ");\">Upgrade ("+FLOOR_COST*(MONI_PERFLOOR ** Number(g("floor" + (floors - i).toString() + "_lvl")))+" bani)</button>"; fs.appendChild(t); }
+			};
+
+			var cname = document.body.querySelector("#cname");
+			var floorbtn = document.body.querySelector("#floorbtn");
+
+			function updateVisuals() {
+				cname.innerText = g("cname");
+				floorbtn.innerText = "Cumpără (" + (Number(g("floors")) * MONI_PERFLOOR * 200).toString() + " bani)";
+				updateMoney();
+				updateFloors();
+			}
+
+			updateVisuals();
+
+			var MONI_INTERVAL = 1000;
+
+			// Get the big moni
+			setInterval(function() {
+				s("lastPlayDate", Date.parse(new Date()) / 1000);
+				for (var i = 1; i <= g("floors"); i++) {
+					s("moni", Number(Number(g("moni")) + MONI_PERFLOOR ** Number(g("floor" + i.toString() + "_lvl"))));
+				};
+				updateVisuals();
+			}, MONI_INTERVAL)
+
+			var FLOOR_COST = 1000;
+
+			window.upgradeFloor = function(f) {
+				var lv = Number(g("floor" + f.toString() + "_lvl"));
+				var cost = FLOOR_COST * (MONI_PERFLOOR ** lv);
+				if (g("moni") >= cost) {
+					s("moni", Number(Number(g("moni")) - cost));
+					s("floor" + f.toString() + "_lvl", lv + 1);
+					updateVisuals();
+				} else { alert("esti sarac"); };
+			}
+
+			window.buyFloor = function() {
+				var FLOOR_COST2 = Number(g("floors")) * MONI_PERFLOOR * 200;
+				if (g("moni") >= FLOOR_COST2) {
+					s("moni", Number(g("moni")) - FLOOR_COST2);
+					s("floors", Number(g("floors")) + 1);
+					s("floor" + g("floors") + "_lvl", 1)
+				} else { alert("esti sarac"); };
+				updateVisuals();
+			}
+
+			window.changeCName = function () {
+				s("cname", prompt("Nume nou?", g("cname"))); updateVisuals();
+			}
+
+			window.reset = function () {
+				if (confirm("Ești sigur de asta?")) {
+					localStorage.clear();
+					document.body.innerHTML = "dă refresh";
+					alert("Gata!");
+					document.location.reload();
+				}
+			}
+
+			window.upgradeAll = function (du = true) {
+				var al = window.alert;
+				var levz = g("floors");
+				window.autoUpgrades = 0;
+				var es = "etajele ";
+				window.alert = function(){window.autoUpgrades--;};
+				if (du) { var i = 1; } else { var i = levz; };
+				function sizz1() { if (du) { return i <= levz; } else { return i >= 1; }; };
+				function sizz2() { if (du) { i++; } else { i--; }; };
+				for (i = i; sizz1(); sizz2()) { var ou = window.autoUpgrades; window.upgradeFloor(i); window.autoUpgrades++; if(window.autoUpgrades > ou) es += i.toString() + ", " };
+				window.alert = al;
+				if (du) { var ss = "jos în sus"; } else { var ss = "sus în jos"; };
+				if (es == "etajele ") es = "";
+				alert("S-au upgradat toate etajele ce au putut fi upgradate, de "+ss+". Au fost upgradate " + es + "în total " + window.autoUpgrades.toString() + " etaje.");
+			}
+			
+			window.maxFloors = function() {
+				var al = window.alert;
+				window.fmok = true; window.bfz = 0;
+				window.alert = function(){window.fmok = false;};
+				while (window.fmok) { window.buyFloor(); window.bfz++; };
+				window.alert = al;
+				alert("S-au cumpărat " + (window.bfz - 1).toString() + " de etaje.");
+			};
+		});
+		</script>
+	</head>
+	<body>
+		<center class="bp">
+			<br>
+			<div class="floor" class="topf" id="cname"></div>
+			<div class="fs"></div>
+		</center>
+		<div class="t">
+			<h1 style="margin-bottom: 0px !important;">Company Tycoon</h1>
+			<h3 style="border-bottom: 5px solid black;" id="moni">0 bani<br><br></h3>
+			<h1>Etaj nou</h1>&nbsp;&nbsp;&nbsp;<button onclick="window.buyFloor()" id="floorbtn">Cumpără (1000 bani)</button>&nbsp;<button onclick="window.maxFloors()">AutoBuy</button>
+			<h1>Schimbă numele companiei</h1>&nbsp;&nbsp;&nbsp;<button onclick="window.changeCName()">Schimbă</button>
+			<h1>Upgradează toate etajele eligibile</h1><button onclick="window.upgradeAll()">Upgrade (jos în sus)</button>&nbsp;<button onclick="window.upgradeAll(false)">Upgrade (sus în jos)</button>
+			<h1>Pierde tot</h1>&nbsp;&nbsp;&nbsp;<button onclick="window.reset()">RESETARE</button>
+		</div>
+	</body>
+</html>
